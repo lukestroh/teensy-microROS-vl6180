@@ -19,7 +19,7 @@
 #include <std_msgs/msg/int32.h>
 #include <vl6180_msgs/msg/vl6180.h>
 // #include <vl6180_msgs/msg/detail/vl6180__functions.h>
-#include <rosidl_runtime_c/primitives_sequence_functions.h>
+// #include <rosidl_runtime_c/primitives_sequence_functions.h>
 
 
 /* microROS setup */
