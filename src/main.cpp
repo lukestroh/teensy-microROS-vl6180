@@ -19,7 +19,7 @@
 #include <std_msgs/msg/int32.h>
 #include <vl6180_msgs/msg/vl6180.h>
 // #include <vl6180_msgs/msg/detail/vl6180__functions.h>
-// #include <rosidl_runtime_c/primitives_sequence_functions.h>
+#include <rosidl_runtime_c/primitives_sequence_functions.h>
 
 
 /* microROS setup */
@@ -181,10 +181,13 @@ void setup() {
   if (!vl6180_msgs__msg__Vl6180__init(&msg)) {
     error_loop();
   }
-  
   msg.data.data = _data;
   msg.data.capacity = NUM_SENSORS;
   msg.data.size = NUM_SENSORS;
+  // if (!rosidl_runtime_c__int32__Sequence__init(&msg.data, msg.data.size)) {
+  //   error_loop();
+  // }
+
 }
 
 
