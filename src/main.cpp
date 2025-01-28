@@ -82,6 +82,13 @@ void error_loop() {
   }
 }
 
+void timer_callback(rcl_timer_t* timer, int64_t last_call_time) {
+  RCLC_UNUSED(last_call_time);
+  if (timer != NULL) {
+    RCSOFTCHECK(rcl_publish(&publisher, &msg, NULL));
+  }
+}
+
 void reset_sensor(Adafruit_VL6180X* psensor, int _i2c_addr) {
   // TODO: shutdown pins, assign address
 
@@ -130,6 +137,19 @@ bool create_rcl_entities() {
       ROSIDL_GET_MSG_TYPE_SUPPORT(vl6180_msgs, msg, Vl6180),
       "vl6180/data"
   ));
+
+  // create timer
+  const unsigned int timer_period {10};
+  RCCHECK(rclc_timer_init_default(
+    &timer,
+    &support,
+    RCL_MS_TO_NS(timer_period),
+    timer_callback
+  ));
+
+  // create executor
+  RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
+  RCCHECK(rclc_executor_add_timer(&executor, &timer));
   
   return true;
 }
@@ -140,8 +160,8 @@ rcl_ret_t destroy_rcl_entities() {
   (void) rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
 
   rcl_publisher_fini(&publisher, &node);
-  // rcl_timer_fini(&timer);
-  // rclc_executor_fini(&executor);
+  rcl_timer_fini(&timer);
+  rclc_executor_fini(&executor);
   rcl_node_fini(&node);
   rclc_support_fini(&support);
 
@@ -210,8 +230,8 @@ void loop() {
       // Publish message
       execute_every_n_ms(10, system_state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_CONNECTED : AGENT_DISCONNECTED);
       if (system_state == AGENT_CONNECTED) {
-        // RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
-        rcl_publish(&publisher, &msg, NULL);
+        RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
+        // rcl_publish(&publisher, &msg, NULL);
       }
       break;
     case AGENT_DISCONNECTED:
@@ -234,7 +254,7 @@ void loop() {
   if (system_state == AGENT_CONNECTED) {
     unsigned long now = millis();
     if (now - led_blink_start_time > 9900) {
-      digitalWrite(LED_BUILTIN, HIGH); 
+      digitalWrite(LED_BUILTIN, HIGH);
     }
     if (now - led_blink_start_time > 10000) {
       digitalWrite(LED_BUILTIN, LOW); 
